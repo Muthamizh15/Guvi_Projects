@@ -11,7 +11,7 @@ import plotly.express as px
 import os
 from dotenv import load_dotenv
 
-# Database connection
+# Database connection 
 DB_NAME="placement.db"
 
 load_dotenv()
@@ -109,6 +109,8 @@ def generate_data(num_students=100):
         city = students_data.city()
         graduation_year = enrollment_year + 1
 
+# Insert data into Students table
+
         cursor.execute('''
             INSERT INTO Students (name, age, gender, email, phone, enrollment_year, course_batch, city, graduation_year)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -116,15 +118,21 @@ def generate_data(num_students=100):
 
         student_id = cursor.lastrowid
 
+# Insert data into Programming table
+
         cursor.execute('''
             INSERT INTO Programming (student_id, language, problems_solved, assessments_completed, mini_projects, certifications_earned, latest_project_score)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (student_id, random.choice(["Python", "R", "SQL"]), random.randint(20, 100), random.randint(5, 20), random.randint(1, 5), random.randint(0, 3), random.randint(50, 100)))
 
+# Insert data into SoftSkills table
+
         cursor.execute('''
             INSERT INTO SoftSkills (student_id, communication, teamwork, presentation, leadership, critical_thinking, interpersonal_skills)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (student_id, random.randint(50, 100), random.randint(50, 100), random.randint(50, 100), random.randint(50, 100), random.randint(50, 100), random.randint(50, 100)))
+
+# Insert data into Placements table
 
         placement_status = random.choice(["Ready", "Not Ready", "Placed"])
         company_name = students_data.company() if placement_status == "Placed" else None
@@ -139,6 +147,8 @@ def generate_data(num_students=100):
 
     conn.commit()
     conn.close()
+
+# Fetch Query - Students Placement Eligibility
 
 def fetch_data(query):
     conn = create_connection()
@@ -195,7 +205,7 @@ def display_student_data():
     top_students_df = fetch_data(top_students_query)
     st.subheader("Top 5 Students Ready for Placement")
     st.bar_chart(top_students_df.set_index('name'))
-
+    
     #4. Distribution of Soft Skills Scores
     soft_skills_disb_query = """
     SELECT 'Communication' AS Skill, AVG(communication) AS avg_score FROM SoftSkills
@@ -214,17 +224,77 @@ def display_student_data():
     st.subheader("Distribution of Soft Skills Scores")
     st.bar_chart(soft_skills_disb_df.set_index('Skill'))
 
+#5. Top 5 Students by Placement Package
+    top_package_query = """
+    SELECT S.name, PL.placement_package
+    FROM Students S
+    JOIN Placements PL ON S.student_id = PL.student_id
+    WHERE PL.placement_status = 'Placed'
+    ORDER BY PL.placement_package DESC
+    LIMIT 5;
+    """
+    top_package_df = fetch_data(top_package_query)
+    st.subheader("Top 5 Students with Highest Placement Packages")
+    st.bar_chart(top_package_df.set_index('name'))
 
+# 6. Students with Highest Certifications
+    certifications_query = """
+    SELECT S.name, P.certifications_earned
+    FROM Students S
+    JOIN Programming P ON S.student_id = P.student_id
+    ORDER BY P.certifications_earned DESC LIMIT 5;
+    """
+    certifications_df = fetch_data(certifications_query)
+    st.subheader("Top 5 Students with Most Certifications")
+    st.bar_chart(certifications_df.set_index('name'))
 
-    query10 = """
+# 7. Top 3 Cities with Most Placed Students
+    cities_most_placed_query = """
+    SELECT S.city, COUNT(*) AS placed_students
+    FROM Students S
+    JOIN Placements PL ON S.student_id = PL.student_id
+    WHERE PL.placement_status = 'Placed'
+    GROUP BY S.city
+    ORDER BY placed_students DESC LIMIT 3;
+    """
+    cities_most_placed_df = fetch_data(cities_most_placed_query)
+    st.subheader("Top 3 Cities with Most Placed Students")
+    st.bar_chart(cities_most_placed_df.set_index('city'))
+
+# 8. Average Placement Package per Course Batch
+    avg_pkg_query = """
+    SELECT S.course_batch, AVG(PL.placement_package) AS avg_package
+    FROM Students S
+    JOIN Placements PL ON S.student_id = PL.student_id
+    GROUP BY S.course_batch
+    ORDER BY avg_package DESC;
+    """
+    avg_pkg_df = fetch_data(avg_pkg_query)
+    st.subheader("Average Placement Package per Course Batch")
+    st.bar_chart(avg_pkg_df.set_index('course_batch'))
+
+# 9. Number of Students by Programming Language
+    students_prog_query = """
+    SELECT P.language, COUNT(*) AS total_students
+    FROM Programming P
+    GROUP BY P.language
+    ORDER BY total_students DESC;
+    """
+    students_prog_df = fetch_data(students_prog_query)
+    st.subheader("Number of Students by Programming Language")
+    st.bar_chart(students_prog_df.set_index('language'))
+
+#10. Top 5 Students with Most Internship Experience
+    internship_exp_query = """
     SELECT S.name, PL.internships_completed
     FROM Students S
     JOIN Placements PL ON S.student_id = PL.student_id
     ORDER BY PL.internships_completed DESC LIMIT 5;
     """
-    data10 = fetch_data(query10)
+    internship_exp_df = fetch_data(internship_exp_query)
     st.subheader("Top 5 Students with Most Internship Experience")
-    st.bar_chart(data10.set_index('name'))
+    st.bar_chart(internship_exp_df.set_index('name'))
+
 
 if __name__ == "__main__":
     create_tables()
