@@ -160,7 +160,7 @@ def fetch_data(query):
 st.title("Placement Eligibility App")
 
 # Sidebar Filters
-st.sidebar.header("Selection Criteria")
+st.sidebar.header("Placement Eligibility Selection Criteria")
 min_problems_solved = st.sidebar.slider("Minimum Problems Solved", 0, 100, 50)
 min_communication = st.sidebar.slider("Minimum Communication Score", 0, 100, 75)
 placement_status_filter = st.sidebar.selectbox("Placement Status", ["All", "Ready", "Not Ready", "Placed"])
